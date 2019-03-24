@@ -1,10 +1,10 @@
 #include<iostream>
-#include <string.h>   //strlen
+#include <string.h>  
 #include<string>  
 #include <stdlib.h>  
 #include <errno.h>  
-#include <unistd.h>   //close  
-#include <arpa/inet.h>    //close  
+#include <unistd.h>   
+#include <arpa/inet.h> 
 #include <sys/types.h>  
 #include <sys/socket.h>  
 #include <netinet/in.h>  
@@ -22,7 +22,18 @@ void sendtoallexcept(int new_client_socket, string message)
 {
     for(int i = 0; i < max_clients; i++)
     {
-        if(client_sockets[i] != new_client_socket)
+        if(client_sockets[i] != new_client_socket && client_sockets[i] != 0)
+        {
+            send(client_sockets[i], message.c_str(), message.length(), 0);
+        }
+    }
+}
+
+void sendtoall(int socket_index, string message)
+{
+    for(int i = 0; i < max_clients; i++)
+    {
+        if(client_sockets[i] == 0)
         {
             send(client_sockets[i], message.c_str(), message.length(), 0);
         }
@@ -36,7 +47,7 @@ int main()
     int max_sd, sd, activity, new_socket;
     sockaddr_in master_socket_address, client_socket_address;
     char buffer[MAX];
-    string welcome_message = "Welcome to the chat room !!!";
+    string welcome_message = "Welcome to the chat room !!!\n";
 
     fd_set socket_set;
 
@@ -120,7 +131,7 @@ int main()
             }
             send(new_socket, welcome_message.c_str(), welcome_message.length(), 0);
             getpeername(new_socket, (SA*)&client_socket_address, (socklen_t*)&addrlen);
-            sendtoallexcept(new_socket, "New member with ip address : " + string(inet_ntoa(client_socket_address.sin_addr)) + " has joined the char room");
+            sendtoallexcept(new_socket, "New member with ip address : " + string(inet_ntoa(client_socket_address.sin_addr)) + " has joined the chat room\n");
         }
 
 
@@ -131,13 +142,24 @@ int main()
             {
                 bzero(buffer, sizeof(buffer));
                 int length_read = read(sd, buffer, MAX);
-                if(length_read == 0)
+                // cout<<"length : "<<length_read<<endl;
+                if(length_read <= 0)
                 {
-                    sendtoallexcept(sd, "client with ip address : " + string(inet_ntoa(client_socket_address.sin_addr)) + " disconnected");
+                    sendtoallexcept(sd, "client with ip address : " + string(inet_ntoa(client_socket_address.sin_addr)) + " disconnected\n");
+                    close(sd);
+                    client_sockets[i] = 0;
                 }
-            }
-            else
-            {
+                else
+                {
+                    string message = "";
+                    int n = 0;
+                    while(buffer[n] != '\0')
+                        message = message + buffer[n++];
+
+                    cout<<"i : "<<i<<endl;
+                    cout<<"message : "<<message<<endl;
+                    sendtoallexcept(sd, message);
+                }
                 
             }
         }
