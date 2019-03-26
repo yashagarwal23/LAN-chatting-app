@@ -11,18 +11,25 @@
 #include <sys/time.h>
 using namespace std;
 
+#define NOT_ACTIVE -1
+#define ACTIVE 1
+#define ON_HOLD 0
+
 #define MAX 1024
 typedef sockaddr SA;
 const int max_clients = 30;
 int PORT = 5000;
-int client_sockets[max_clients], client_number[max_clients], client_group[max_clients];
+int client_sockets[max_clients];
 int master_socket;
+string client_names[max_clients];
+int client_status[max_clients];
+
 
 void sendtoallexcept(int new_client_socket, string message)
 {
     for(int i = 0; i < max_clients; i++)
     {
-        if(client_sockets[i] != new_client_socket && client_sockets[i] != 0)
+        if(client_sockets[i] != new_client_socket && client_status[i] == ACTIVE)
         {
             send(client_sockets[i], message.c_str(), message.length(), 0);
         }
@@ -33,7 +40,7 @@ void sendtoall(int socket_index, string message)
 {
     for(int i = 0; i < max_clients; i++)
     {
-        if(client_sockets[i] == 0)
+        if(client_sockets[i] != 0)
         {
             send(client_sockets[i], message.c_str(), message.length(), 0);
         }
@@ -48,15 +55,14 @@ int main()
     sockaddr_in master_socket_address, client_socket_address;
     char buffer[MAX];
     string welcome_message = "Welcome to the chat room !!!\n";
-
-    fd_set socket_set;
+    string enter_name_message = "Enter name : ";
 
     for(int i = 0; i < max_clients; i++)
     {
-        client_sockets[i] = 0;
-        client_number[i] = -1;
-        client_group[i] = -1;
+        client_status[i] = NOT_ACTIVE;
     }
+
+    fd_set socket_set;
 
     if((master_socket = socket(AF_INET, SOCK_STREAM, 0)) == 0)
     {
@@ -123,15 +129,14 @@ int main()
             }
             for(int i = 0; i < max_clients; i++)
             {
-                if(client_sockets[i] == 0)
+                if(client_status[i] == NOT_ACTIVE)
                 {
                     client_sockets[i] = new_socket;
+                    client_status[i] = ON_HOLD;
                     break;
                 }
             }
-            send(new_socket, welcome_message.c_str(), welcome_message.length(), 0);
-            getpeername(new_socket, (SA*)&client_socket_address, (socklen_t*)&addrlen);
-            sendtoallexcept(new_socket, "New member with ip address : " + string(inet_ntoa(client_socket_address.sin_addr)) + " has joined the chat room\n");
+            send(new_socket, enter_name_message.c_str(), enter_name_message.length(), 0);
         }
 
 
@@ -145,9 +150,9 @@ int main()
                 // cout<<"length : "<<length_read<<endl;
                 if(length_read <= 0)
                 {
-                    sendtoallexcept(sd, "client with ip address : " + string(inet_ntoa(client_socket_address.sin_addr)) + " disconnected\n");
+                    sendtoallexcept(sd, client_names[i] + " disconnected\n");
                     close(sd);
-                    client_sockets[i] = 0;
+                    client_status[i] = NOT_ACTIVE;
                 }
                 else
                 {
@@ -156,9 +161,18 @@ int main()
                     while(buffer[n] != '\0')
                         message = message + buffer[n++];
 
-                    cout<<"i : "<<i<<endl;
+                    if(client_status[i] == ON_HOLD)
+                    {   
+                        client_names[i] = message;
+                        client_status[i] = ACTIVE;
+                        sendtoallexcept(client_sockets[i], client_names[i] + " just joined the chat room\n");
+                        send(new_socket, welcome_message.c_str(), welcome_message.length(), 0);
+                        continue;
+                    }
+
+                    // cout<<"i : "<<i<<endl;
                     cout<<"message : "<<message<<endl;
-                    sendtoallexcept(sd, message);
+                    sendtoallexcept(sd, client_names[i] + " : " + message);
                 }
                 
             }
