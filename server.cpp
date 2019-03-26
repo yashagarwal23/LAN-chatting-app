@@ -13,7 +13,7 @@ using namespace std;
 
 #define NOT_ACTIVE -1
 #define ACTIVE 1
-#define ON_HOLD 0
+#define ON_HOLD 2
 
 #define MAX 1024
 typedef sockaddr SA;
@@ -147,7 +147,7 @@ int main()
             {
                 bzero(buffer, sizeof(buffer));
                 int length_read = read(sd, buffer, MAX);
-                // cout<<"length : "<<length_read<<endl;
+                // cout<<"i : " << i << "length : "<<length_read<<endl;
                 if(length_read <= 0)
                 {
                     sendtoallexcept(sd, client_names[i] + " disconnected\n");
@@ -165,8 +165,8 @@ int main()
                     {   
                         client_names[i] = message;
                         client_status[i] = ACTIVE;
-                        sendtoallexcept(client_sockets[i], client_names[i] + " just joined the chat room\n");
-                        send(new_socket, welcome_message.c_str(), welcome_message.length(), 0);
+                        sendtoallexcept(sd, client_names[i] + " just joined the chat room\n");
+                        send(sd, welcome_message.c_str(), welcome_message.length(), 0);
                         continue;
                     }
 
