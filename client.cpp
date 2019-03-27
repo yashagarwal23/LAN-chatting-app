@@ -75,14 +75,14 @@ int main()
     server_addr.sin_addr.s_addr = inet_addr(ipaddr.c_str());
     server_addr.sin_port = htons(PORT);
 
-    thread read_thread(read_thread_func, socket_id);
-
     if (connect(socket_id, (SA *)&server_addr, sizeof(server_addr)) != 0)
     {
         cout << "cant connect with server\n";
         exit(0);
     }
 
+    thread read_thread(read_thread_func, socket_id);
+    
     func(socket_id);
     close(socket_id);
     return 0;
