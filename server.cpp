@@ -13,7 +13,7 @@
 
 using namespace std;
 
-#define MAX 1024
+#define MAX 1024*1024
 #define ACTIVE 100
 #define INACTIVE 102
 #define ONHOLD 101
@@ -51,7 +51,6 @@ void sendtoall(int socket_index, string message)
 void getfile(int client_socket_id, string filename)
 {
     char buffer[MAX];
-    cout<<"filename : "<<filename<<endl;
     bzero(buffer, sizeof(buffer));
     read(client_socket_id, buffer, sizeof(buffer));
 
@@ -62,17 +61,38 @@ void getfile(int client_socket_id, string filename)
 
     ofstream file;
     file.open(filepath + filename, ios::out);
-    cout<<"data : "<<data<<endl;
     if(file)
     {
         file<<data;
     }
     else
     {
-        cout<<"file not found\n";
+        cout<<"some error occurred\n";
     }
-    // cout<<"buffer : "<<buffer<<endl;
-    // fprintf(fp, "%s", buffer);
+}
+
+void givefile(int client_socket_id, string filename)
+{
+    ifstream file;
+    file.open(filepath + filename, ios::in);
+    string data, tmp;
+    if(file)
+    {
+        while(getline(file, tmp))
+        {
+            data.append(tmp);
+            data = data + "\n";
+        }
+        
+        data = data + '\0';
+        write(client_socket_id, data.c_str(), data.length());
+    }
+    else
+    {
+        cout<<"file not found\n";
+        string file_not_found_message = "Requested file not found\n";
+        write(client_socket_id, file_not_found_message.c_str(), file_not_found_message.length());
+    }
 }
 
 int main()
@@ -191,11 +211,15 @@ int main()
                     while(buffer[n] != '\0')
                         message = message + buffer[n++];
 
-                    cout<<"message : " << message<<endl;
+                    // cout<<"message : " << message<<endl;
 
                     if(message.find("upload") != string::npos)
                     {
                         getfile(client_sockets[i], message.substr(7));
+                    }
+                    else if(message.find("download") != string::npos)
+                    {
+                        givefile(client_sockets[i], message.substr(9));
                     }
 
                     sendtoallexcept(sd, client_names[i] + " : " + message);

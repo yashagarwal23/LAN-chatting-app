@@ -12,7 +12,7 @@
 
 using namespace std;
 
-#define MAX 1024
+#define MAX 1024*1024
 #define SA struct sockaddr
 
 int PORT = 5000;
@@ -41,24 +41,19 @@ void uploadfile(int socket_id, string filename)
     char buffer[MAX];
 
     ifstream file;
-
-    cout<<"filename : "<<filename<<endl;
     file.open(filename, ios::in);
     bzero(buffer, sizeof(buffer));
     string data;
     string tmp;
     if (file)
     {
-        // fscanf(f, "%s", buffer);
         while(getline(file, tmp))
         {
             data.append(tmp);
             data = data + "\n";
         }
         
-        cout<<"data : " << data<<endl;
         data = data + '\0';
-        // cout<<"buffer : "<<buffer<<endl;
         write(socket_id, data.c_str(), data.length());
     }
     else
@@ -66,6 +61,29 @@ void uploadfile(int socket_id, string filename)
         cout<<"file not found\n";
         strcpy(buffer, "file not found");
         write(socket_id, buffer, sizeof(buffer));
+    }
+}
+
+void downloadfile(int socket_id , string filename)
+{
+    char buffer[MAX];
+    bzero(buffer, sizeof(buffer));
+    read(socket_id, buffer, sizeof(buffer));
+
+    string data = "";
+    int n = 0;
+    while(buffer[n] != '\0' && n < MAX)
+        data = data + buffer[n++];
+
+    ofstream file;
+    file.open(filename, ios::out);
+    if(file)
+    {
+        file<<data;
+    }
+    else
+    {
+        cout<<"some error occurred\n";
     }
 }
 
@@ -87,6 +105,12 @@ void func(int socket_id)
         {
             write(socket_id, buffer, sizeof(buffer));
             uploadfile(socket_id, s.substr(7));
+            continue;
+        }
+        if (strncmp(buffer, "download", 8) == 0)
+        {
+            write(socket_id, buffer, sizeof(buffer));
+            downloadfile(socket_id, s.substr(9));
             continue;
         }
         if (strncmp(buffer, "quit", 4) == 0)
