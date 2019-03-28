@@ -1,5 +1,4 @@
 .vscode/
 *.out
-files/
+files/*
 !files/.gitkeep
-
