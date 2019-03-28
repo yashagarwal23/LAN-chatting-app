@@ -9,6 +9,8 @@
 #include <sys/socket.h>  
 #include <netinet/in.h>  
 #include <sys/time.h>
+#include<fstream>
+
 using namespace std;
 
 #define MAX 1024
@@ -22,6 +24,7 @@ int PORT = 5000;
 int client_sockets[max_clients], client_status[max_clients];
 string client_names[max_clients];
 int master_socket;
+string filepath = "./files/";
 
 void sendtoallexcept(int new_client_socket, string message)
 {
@@ -43,6 +46,33 @@ void sendtoall(int socket_index, string message)
             send(client_sockets[i], message.c_str(), message.length(), 0);
         }
     }
+}
+
+void getfile(int client_socket_id, string filename)
+{
+    char buffer[MAX];
+    cout<<"filename : "<<filename<<endl;
+    bzero(buffer, sizeof(buffer));
+    read(client_socket_id, buffer, sizeof(buffer));
+
+    string data = "";
+    int n = 0;
+    while(buffer[n] != '\0' && n < MAX)
+        data = data + buffer[n++];
+
+    ofstream file;
+    file.open(filepath + filename, ios::out);
+    cout<<"data : "<<data<<endl;
+    if(file)
+    {
+        file<<data;
+    }
+    else
+    {
+        cout<<"file not found\n";
+    }
+    // cout<<"buffer : "<<buffer<<endl;
+    // fprintf(fp, "%s", buffer);
 }
 
 int main()
@@ -160,6 +190,13 @@ int main()
                     int n = 0;
                     while(buffer[n] != '\0')
                         message = message + buffer[n++];
+
+                    cout<<"message : " << message<<endl;
+
+                    if(message.find("upload") != string::npos)
+                    {
+                        getfile(client_sockets[i], message.substr(7));
+                    }
 
                     sendtoallexcept(sd, client_names[i] + " : " + message);
                 }

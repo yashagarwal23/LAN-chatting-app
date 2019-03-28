@@ -7,7 +7,8 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include<thread>
+#include <thread>
+#include <fstream>
 
 using namespace std;
 
@@ -19,7 +20,7 @@ string ipaddr = "127.0.0.1";
 
 void read_thread_func(int socket_id)
 {
-    while(true)
+    while (true)
     {
         char buffer[MAX];
         int n;
@@ -35,25 +36,62 @@ void read_thread_func(int socket_id)
     }
 }
 
+void uploadfile(int socket_id, string filename)
+{
+    char buffer[MAX];
+
+    ifstream file;
+
+    cout<<"filename : "<<filename<<endl;
+    file.open(filename, ios::in);
+    bzero(buffer, sizeof(buffer));
+    string data;
+    string tmp;
+    if (file)
+    {
+        // fscanf(f, "%s", buffer);
+        while(getline(file, tmp))
+        {
+            data.append(tmp);
+            data = data + "\n";
+        }
+        
+        cout<<"data : " << data<<endl;
+        data = data + '\0';
+        // cout<<"buffer : "<<buffer<<endl;
+        write(socket_id, data.c_str(), data.length());
+    }
+    else
+    {
+        cout<<"file not found\n";
+        strcpy(buffer, "file not found");
+        write(socket_id, buffer, sizeof(buffer));
+    }
+}
+
 void func(int socket_id)
 {
     char buffer[MAX];
     int n;
     while (true)
     {
-        // if(cin.get())
-        // {
-            string s;
-            getline(cin, s);
-            bzero(buffer, sizeof(buffer));
-            n = 0;
-            for (int i = 0; i < s.length(); i++)
-                buffer[n++] = s[i];
-            buffer[n] = '\0';
-            if (strncmp(buffer, "quit", 4) == 0)
-                break;
+
+        string s;
+        getline(cin, s);
+        bzero(buffer, sizeof(buffer));
+        n = 0;
+        for (int i = 0; i < s.length(); i++)
+            buffer[n++] = s[i];
+        buffer[n] = '\0';
+        if (strncmp(buffer, "upload", 6) == 0)
+        {
             write(socket_id, buffer, sizeof(buffer));
-        // }
+            uploadfile(socket_id, s.substr(7));
+            continue;
+        }
+        if (strncmp(buffer, "quit", 4) == 0)
+            break;
+        write(socket_id, buffer, sizeof(buffer));
     }
 }
 
@@ -82,7 +120,7 @@ int main()
     }
 
     thread read_thread(read_thread_func, socket_id);
-    
+
     func(socket_id);
     close(socket_id);
     return 0;
