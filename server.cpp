@@ -221,8 +221,8 @@ int main()
                     {
                         givefile(client_sockets[i], message.substr(9));
                     }
-
-                    sendtoallexcept(sd, client_names[i] + " : " + message);
+                    if(message.length() > 0)
+                        sendtoallexcept(sd, client_names[i] + " : " + message);
                 }
                 else if(client_status[i] == ONHOLD)
                 {
